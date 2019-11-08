@@ -1,0 +1,289 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>南航电子行程单</title>
+  <script language="javascript" src="js/LodopFuncs.js"></script>
+  <script language="javascript" src="js/jquery-3.4.1.js"></script>
+  <script language="javascript" src="js/vue-2.4.0.js"></script>
+  <script language="javascript" src="js/axios-0.18.0.min.js"></script>
+  <link href="css/bootstrap-3.3.7.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/element-ui-2.11.1-index.css">
+  <script src="js/element-ui-2.11.1-index.js"></script>
+  <style id="stl">
+    body{
+      margin: 0;
+    }
+
+    #printBox{
+      border: 1px solid rgba(137, 103, 73, 0.45);
+      /* 210*101mm -> 792*380px */
+      width: 210mm;
+      height: 150mm;
+      margin: 5px 0px;
+    }
+    #printContent{
+      width: 210mm;
+      height: 150mm;
+      margin: 0;
+      position: relative;
+      background-image: url(./images/new-splitted-with-bottom.jpg);
+      background-size: 210mm 150mm;
+      background-repeat:no-repeat;
+    }
+
+    #printContent span {
+      position: absolute;
+      word-break: break-all;
+
+    }
+  </style>
+  <style>
+    #printBox {
+      /*border: 1px solid rgba(137, 103, 73, 0.45);*/
+    }
+
+    .topBox{
+      width: 220mm;
+      margin: 0px auto;
+      height: 38px;
+    }
+    .mainBox{
+      width: 230mm;
+      margin: 0px auto;
+      display: flex;
+    }
+    .bottomBox{
+      margin: 0px auto;
+      width: 600px;
+    }
+    #printContent span:hover{
+      cursor: move;
+    }
+    #printBtn {
+      margin: 26px auto;
+      display: block !important;
+      width: 500px;
+      height: 80px;
+      line-height: 80px !important;
+      font-size: 45px !important;
+      padding: 0px !important;
+      color: #6d7d7db3 !important;
+    }
+    span.glyphicon-print{
+      font-size: 32px;
+      padding: 10px;
+    }
+    #verticalSlider {
+      width: 13mm;
+    }
+    .switchContainer{
+      margin: 0 auto;
+      width: 500px;
+    }
+    #sliderSwitch{
+      margin-left: 25px;
+      width: 250px;
+      float: left;
+    }
+    #sliderSwitch div span span{
+      line-height: unset !important;
+    }
+    #movePrintContentSwitch{
+      float: left;
+    }
+    #movePrintContentSwitch div span span{
+      line-height: unset !important;
+    }
+
+    /*动画过渡*/
+    .fade-enter-active, .fade-leave-active {
+      transition: opacity 2.8s;
+    }
+    .fade-enter, .fade-leave-to {
+      opacity: 0;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="topBox">
+    <transition name="fade">
+      <div v-show="sliderSwitch" id="horizonSlider">
+        <el-slider v-model="movePrintPaperHorizon" :min="-200" :max="300" style="width: 100%;margin-right: 20px;"></el-slider>
+      </div>
+    </transition>
+  </div>
+  <div class="mainBox">
+
+
+    <div  id="verticalSlider">
+      <transition name="fade">
+        <el-slider v-show="sliderSwitch" v-model="movePrintPaperVertical" vertical height="150mm" :min="-300" :max="500"></el-slider>
+      </transition>
+    </div>
+    <div id="content" @mouseup="end" v-show="dataMounted">
+      <div id="printBox">
+        <div id="printContent">
+            <span v-for="(item,idx) in list" :id="item.id" :key="item.id" @mousedown="down(item.id)"
+                  @mousemove.capture="move(item.id)"
+                  :style="item.style">
+                {{item.val}}
+            </span>
+        </div>
+      </div>
+  </div>
+  </div>
+  <div class="bottomBox">
+    <a id="printBtn" @click.prevent="preview()" class="btn btn-default">打印</a>
+    <!--打印纸张调整开关-->
+    <div class="switchContainer">
+    <div id="sliderSwitch">
+      <el-switch v-model="sliderSwitch" active-text="打印纸张位置调整"></el-switch>
+    </div>
+    <div id="movePrintContentSwitch">
+      <el-popover ref="popover1"
+        placement="top-start"
+        width="200"
+        trigger="hover"
+        title="操作办法"
+        content="鼠标放到行程单上，点击要移动的文字，然后拖动即可（鼠标保持点击状态）">
+      </el-popover>
+      <el-switch v-popover:popover1 v-model="movePrintContentSwitch" active-text="打印文字位置调整"></el-switch>
+    </div>
+  </div>
+  </div>
+</div>
+
+<script language="javascript" type="text/javascript">
+  var LODOP; //声明为全局变量
+
+  var vm = new Vue({
+    el:"#app",
+    data:{
+      list:[],
+      flags:false,
+      position:{x:0,y:0},
+      nx: '', ny: '', dx: '', dy: '', xPum: '', yPum: '',
+      dataMounted:false,
+      movePrintPaperHorizon:0,
+      movePrintPaperVertical:0,
+      sliderSwitch:false,
+      movePrintContentSwitch:false
+    },
+    methods:{
+      preview(){
+        var html = "<style>"+$("#stl").html()+"</style>"
+        html = html+ "<div>"+$("#content").html()+"</div>";
+        LODOP=getLodop();
+        LODOP.PRINT_INIT("");
+        //LODOP.SET_PRINT_STYLE("FontSize",18);
+        //LODOP.SET_PRINT_STYLE("Bold",1);
+        //ADD_PRINT_HTM(intTop,intLeft,intWidth,intHeight,strHtml)
+        console.info(html)
+        LODOP.ADD_PRINT_HTM(this.movePrintPaperVertical,this.movePrintPaperHorizon,"210mm","279mm",html);
+        //LODOP.SET_PRINT_PAGESIZE(intOrient,intPageWidth,intPageHeight,strPageName);
+        //1---纵向打印，固定纸张；
+        //LODOP.SET_PRINT_PAGESIZE(1,0,0,"A4");
+        LODOP.PREVIEW();
+      },
+      down(id){
+        var cnt = document.getElementById(id);
+        if(this.movePrintContentSwitch)
+          this.flags = true;
+        this.position.x = event.clientX;
+        this.position.y = event.clientY;
+        this.dx = cnt.offsetLeft;
+        this.dy = cnt.offsetTop;
+      },
+      move(id){
+        if(this.flags){
+          var cnt = document.getElementById(id);
+          let width = $("#content div").width();
+          let height = $("#content div").height();
+          // px->mm
+          width = this.px2mm(width)
+          height = this.px2mm(height)
+          this.nx = event.clientX - this.position.x;
+          this.ny = event.clientY - this.position.y;
+          this.xPum = this.dx+this.nx;
+          this.yPum = this.dy+this.ny;
+          this.xPum = this.px2mm(this.xPum)
+          this.yPum = this.px2mm(this.yPum)
+          if(this.xPum<0){
+            this.xPum = - this.xPum;
+          }
+          if(this.xPum > width){
+            this.xPum = width-1;
+          }
+          if(this.yPum<0){
+            this.yPum = - this.yPum;
+          }
+          if(this.yPum > height){
+            this.yPum = height-1;
+          }
+          //坐标位置赋值给当前dom元素
+          cnt.style.left = this.xPum+"mm";
+          cnt.style.top = this.yPum +"mm";
+          //对当前元素的坐标位置持久化
+          this.list = this.list.map(e=>{
+            if(e.id==id){
+              e.top = this.yPum;
+              e.left = this.xPum;
+            }
+            return e;
+          })
+        }
+      },
+      end(){
+        this.flags = false;
+      },
+      //同步处理
+      async getData() { //远程获取打印元素初始状态值
+        //let url = "https://www.easy-mock.com/mock/5d09930224add5128091e046/example/lodop/printData";
+        let url = "json/print-item-metadata-right.json";
+        await axios.get(url).then(r => this.list = r.data.data.content)
+      },
+      getDPI(){
+        var arrDPI = new Array;
+        if (window.screen.deviceXDPI) { //ie9
+          arrDPI[0] = window.screen.deviceXDPI;
+          arrDPI[1] = window.screen.deviceYDPI;
+        } else {
+          var tmpNode = document.createElement("DIV");
+          tmpNode.style.cssText = "width:1in;height:1in;position:absolute;left:0px;top:0px;z-index:99;visibility:hidden";
+          document.body.appendChild(tmpNode);
+          arrDPI[0] = parseInt(tmpNode.offsetWidth);
+          arrDPI[1] = parseInt(tmpNode.offsetHeight);
+          tmpNode.parentNode.removeChild(tmpNode);
+        }
+        return arrDPI;
+      },
+      px2mm(val){ //  px转换为mm
+        var inch = val/this.getDPI()[0];
+        var c_value = inch * 25.4;
+        return c_value;
+      },
+      mm2px(val){ //  mm转换为px
+        var inch = value/25.4;
+        var c_value = inch*this.getDPI()[0];
+        return c_value;
+      }
+    },
+    mounted(){
+        setTimeout(()=>{
+          this.list.forEach((e,idx)=>{
+            var cnt = document.getElementById(e.id);
+            cnt.style.left = e.left+"mm";
+            cnt.style.top = e.top+"mm";
+          })
+          this.dataMounted=true;
+        },800)
+
+    },
+    created() {
+      this.getData()
+    }
+  });
+</script>
+</body>
+</html>

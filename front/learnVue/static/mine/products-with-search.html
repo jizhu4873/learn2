@@ -1,0 +1,148 @@
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>template</title>
+  <link rel="stylesheet" href="css/bootstrap-3.3.7.css">
+  <script src="js/vue-2.4.0.js"></script>
+</head>
+<style>
+  [v-cloak]{
+    display: none;
+  }
+</style>
+<body>
+<div id="app">
+
+  <div class="panel panel-primary">
+    <div class="panel-heading">
+      <h3 class="panel-title">添加品牌</h3>
+    </div>
+    <div class="panel-body form-inline">
+      <label>
+        Id:
+        <input type="text" class="form-control" v-model="id">
+      </label>
+
+      <label>
+        Name:
+        <input type="text" class="form-control" v-model="name" @keyup.f2="add">
+      </label>
+
+      <!-- 在Vue中，使用事件绑定机制，为元素指定处理函数的时候，如果加了小括号，就可以给函数传参了 -->
+      <input type="button" value="添加" class="btn btn-primary" @click="add()">
+
+      <label>
+        搜索名称关键字：
+        <input type="text" class="form-control" v-model="keywords" v-focus>
+      </label>
+    </div>
+  </div>
+
+<table class="table table-bordered table-hover table-striped">
+  <thead>
+  <tr>
+    <th>id</th>
+    <th>name</th>
+    <th>creatTime</th>
+    <th>op</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr v-for="o in search()" :key="o.id">
+    <td>{{o.id}}</td>
+    <td>{{o.name}}</td>
+    <td>{{o.creatTime | dateFormat}}</td>
+    <td><a href="" @click.prevent="del(o.id)">删除</a></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+
+<script>
+
+  /*Vue.filter("dateFormat",function (src,pattern="") {
+      var dt = new Date(src);
+      var y = dt.getFullYear();
+      var m = dt.getMonth();
+      var d = dt.getDate();
+      var h = dt.getHours();
+      var minutes = dt.getMinutes();
+      var s = dt.getSeconds();
+      if(pattern.toLowerCase() === "yyyy-mm-dd"){
+        return `${y}-${m}-${d}`
+      }
+      return `${y}-${m}-${d} ${h}:${minutes}:${s}`
+  })*/
+
+  // 自定义按键修饰符（113对应键盘F2）
+Vue.config.keyCodes.f2 = 113
+  var vm = new Vue({
+    el:"#app",
+    data:{
+      keywords:"",
+      id:"",
+      name:"",
+      list:[
+        {id:1,name:"大奔",creatTime:new Date()},
+        {id:2,name:"宝马",creatTime:new Date()},
+      ]
+    },
+    methods:{
+      add(){
+        var car = {id:this.id,name:this.name,creatTime:new Date()}
+        this.list.push(car)
+        this.name=this.id=""
+      },
+      del(id){
+        this.list.some((item,idx)=>{
+          if(id == item.id){
+            this.list.splice(idx,1);
+            return true;
+          }
+        })
+      }
+      ,
+      search(){
+        return this.list.filter(item=>{
+          if(item.name.includes(this.keywords)){
+            return item;
+          }
+        })
+      }
+    },
+    filters:{
+      dateFormat(src,pattern="") {
+        var dt = new Date(src);
+        var y = dt.getFullYear();
+        var m = (dt.getMonth()+1).toString().padStart(2,"0");
+        var d = dt.getDate();
+        var h = dt.getHours();
+        var minutes = dt.getMinutes();
+        var s = dt.getSeconds();
+        if(pattern.toLowerCase() === "yyyy-mm-dd"){
+          return `${y}-${m}-${d}`
+        }
+        return `${y}-${m}-${d} ${h}:${minutes}:${s}`
+      }
+    },
+    directives:{
+      focus:{
+        inserted(dom){
+          dom.focus()
+        }
+
+      }
+    }
+  });
+
+</script>
+</body>
+</html>
