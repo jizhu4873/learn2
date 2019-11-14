@@ -1,6 +1,10 @@
 <template>
   <div class="my-container">
-    <mt-header fixed title="mint项目学习"></mt-header>
+    <mt-header fixed title="mint项目学习">
+      <span v-show="flag" @click="goBack()" slot="left">
+        <mt-button icon="back">返回</mt-button>
+      </span>
+    </mt-header>
     <transition name="fade">
       <router-view></router-view>
     </transition>
@@ -15,7 +19,7 @@
         <span class="mui-tab-label">会员</span>
       </router-link>
       <router-link class="mui-tab-item-x" to="/cart">
-        <span class="mui-icon mui-icon-extra mui-icon-extra-cart"><span class="mui-badge" id="badge">0</span></span>
+        <span class="mui-icon mui-icon-extra mui-icon-extra-cart"><span class="mui-badge" id="badge">{{$store.getters.cartcnt}}</span></span>
         <span class="mui-tab-label">购物车</span>
       </router-link>
       <router-link class="mui-tab-item-x" to="/search">
@@ -28,7 +32,28 @@
 </template>
 
 <script>
-
+  export default {
+    data(){
+      return {
+        flag:false
+      }
+    },
+    methods:{
+      goBack(){
+        this.$router.go(-1)
+      }
+    },
+    created() {
+      this.flag = this.$route.path === "/home"?false:true
+    },
+    watch:{
+      "$route.path":function (newVal) {
+        this.flag = true
+        if(newVal === "/home")
+           this.flag = false
+      }
+    }
+  }
 </script>
 
 

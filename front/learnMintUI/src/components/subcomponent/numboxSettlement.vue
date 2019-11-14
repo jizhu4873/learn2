@@ -1,8 +1,8 @@
 <template>
-    <div class="mui-numbox" data-numbox-min='1'>
+    <div class="mui-numbox" data-numbox-min='1' style="height: 25px;">
         <button class="mui-btn mui-btn-numbox-minus" type="button">-</button>
-        <input id="test" class="mui-input-numbox" type="number" value="1"
-        @change="addCartNum" ref="cartNum"/>
+        <input id="test" class="mui-input-numbox" type="number" :value="dt"
+         ref="cartNum" readonly @change="changeNmu()"/>
         <button class="mui-btn mui-btn-numbox-plus" type="button">+</button>
     </div>
 </template>
@@ -20,16 +20,13 @@
             mui(".mui-numbox").numbox();
         },
         methods:{
-            addCartNum(){
-                this.$emit("getCount",this.$refs.cartNum.value)
+            changeNmu(){
+                this.$store.commit("updateCartNmu",{id:this._id,count:this.$refs.cartNum.value})
             }
         },
-        props:["maxCartNum"],
         watch:{
-            "maxCartNum":function (newVal, oldVal) {
-                mui(".mui-numbox").numbox().setOption("max",newVal)
-            }
-        }
+        },
+        props:["dt","_id"]
     }
 </script>
 
